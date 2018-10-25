@@ -32,3 +32,4 @@ $ just run
 
 * gradle-intellij-plugin: https://github.com/JetBrains/gradle-intellij-plugin
 * Grammar-Kit: https://github.com/JetBrains/Grammar-Kit
+* Custom Language support: http://www.jetbrains.org/intellij/sdk/docs/reference_guide/custom_language_support.html
