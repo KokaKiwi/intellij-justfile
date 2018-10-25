@@ -1,0 +1,23 @@
+<idea-plugin>
+    <id>org.mvnsearch.intellij.justfile</id>
+    <name>just command runner support</name>
+    <version>0.0.1</version>
+    <vendor email="libing.chen@gmail.com" url="https://github.com/linux-china/intellij-justfile/">linux_china</vendor>
+
+    <description><![CDATA[
+Support for Justfile command runner https://github.com/casey/just
+    ]]></description>
+
+
+    <idea-version since-build="181.0"/>
+
+    <depends>com.intellij.modules.lang</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileTypeFactory implementation="org.mvnsearch.intellij.justfile.JustfileFileTypeFactory"/>
+    </extensions>
+
+    <actions>
+    </actions>
+
+</idea-plugin>
