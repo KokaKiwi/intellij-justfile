@@ -1,0 +1,83 @@
+{
+  generate=[java="8"]
+
+  parserClass="org.mvnsearch.intellij.justfile.JustfileParser"
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix = "Justfile"
+  psiImplClassSuffix = "Impl"
+  psiPackage = "org.mvnsearch.intellij.justfile.psi"
+  psiImplPackage = "org.mvnsearch.intellij.justfile.psi.impl"
+  psiImplUtilClass = "org.mvnsearch.intellij.justfile.psi.JustfilePsiImplUtil"
+
+
+  elementTypeHolderClass = "org.mvnsearch.intellij.justfile.psi.MakefileTypes"
+  elementTypeClass = "org.mvnsearch.intellij.justfile.psi.JustfileElementType"
+  tokenTypeClass = "org.mvnsearch.intellij.justfile.psi.JustfileTokenType"
+
+  //https://github.com/casey/just/blob/master/GRAMMAR.md
+  tokens = [
+    TAB = "\t"
+    COLON = ":"
+    ASSIGN = "="
+    NEWLINE = "\n|\r\n"
+    BACKTICK = "regexp:`[^`\n\r]*`"
+    RAW_STRING ="regexp:'[^'\r\n]*'"
+    STRING="regexp:\"[^\"]*\""
+    COMMENT="regexp:#([^!].*)?$"
+    NAME="regexp:[a-zA-Z_][a-zA-Z0-9_-]*"
+    KEYWORD_EXPORT = "export"
+  ]
+
+}
+
+justfile ::= any*
+
+private any ::= (conditional|rule|command|variable-assignment|directive|function|macro)
+
+private directive ::= define|include|undefine|override|export|privatevar|vpath
+
+rule ::= target_line recipe {methods=[getTargets]}
+recipe ::= (command|conditional|empty_command)* {methods=[isEmpty]}
+command ::= '\t'* multiline
+private multiline ::= (line (split line?)* | (split line?)+)
+empty_command ::= '\t'+
+
+target_line ::= targets (':'|'::') (target_pattern ':')? (exportvar|override|privatevar|variable-assignment|prerequisites ';'? EOL?) {pin=2 methods=[getTargetName]}
+targets ::= target+
+target ::= identifier|variable_usage {mixin="name.kropp.intellij.makefile.psi.impl.MakefileNamedElementImpl" implements=["name.kropp.intellij.makefile.psi.MakefileNamedElement" "com.intellij.navigation.NavigationItem"] stubClass="name.kropp.intellij.makefile.stub.MakefileTargetStubElement"   elementTypeFactory="name.kropp.intellij.makefile.psi.MakefileTargetStubElementType.getInstance" methods=[getName setName getNameIdentifier getPresentation isSpecialTarget isPatternTarget matches getDocComment]}
+
+target_pattern ::= identifier
+
+prerequisites ::= normal_prerequisites ('|' order_only_prerequisites)?
+normal_prerequisites ::= prerequisite* (split prerequisite*)*
+order_only_prerequisites ::= prerequisite* (split prerequisite*)*
+prerequisite ::= identifier|variable_usage {mixin="name.kropp.intellij.makefile.psi.impl.MakefilePrerequisiteMixin" methods=[updateText isPhonyTarget]}
+
+private conditional-keyword ::= ('ifeq'|'ifneq'|'ifdef'|'ifndef')
+conditional ::= conditional-keyword condition block ('else' (conditional-keyword condition block | EOL block))* 'endif'
+block ::= any+|empty_command?
+
+meta variable-assignment ::= variable assignment (function|variable-value?) {pin=2 methods=[getAssignment getValue]}
+private assignment ::= ('='|':='|'::='|'?='|'!='|'+=')
+variable ::= identifier
+meta variable-value ::= multiline
+define ::= 'define' variable assignment? (variable-value-line split?)* 'endef' {pin=1 methods=[getAssignment getValue]}
+undefine ::= 'undefine' variable EOL {pin=1}
+override ::= 'override' variable-assignment {pin=1}
+export ::= 'export' (variable-assignment|variable)? EOL {pin=1}
+private exportvar ::= 'export' variable-assignment {pin=1}
+privatevar ::= 'private' variable-assignment {pin=1}
+
+include ::= ('include'|'-include'|'sinclude') filename+ EOL {pin=1}
+filename ::= identifier {mixin="name.kropp.intellij.makefile.psi.impl.MakefileFilenameMixin"}
+
+vpath ::= 'vpath' (pattern directory*)? EOL {pin=1}
+pattern ::= identifier
+directory ::= identifier {mixin="name.kropp.intellij.makefile.psi.impl.MakefileFilenameMixin"}
+
+function ::= ('$(error'|'$(warning'|'$(info'|'$(shell'|'$(wildcard'|'$(pathsubst') function-param* ')'
+meta function-param ::= function-param-text|variable_usage
+
+comment ::=
+doc_comment ::=
